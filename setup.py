@@ -2,8 +2,9 @@ import os
 import re
 import string
 
+from configparser import ConfigParser
 from contextlib import contextmanager
-from setuptools import find_packages, setup
+from setuptools import setup, find_packages
 
 
 def get_version(package):
@@ -16,18 +17,35 @@ def get_version(package):
         return mth.group(1)
     else:
         raise RuntimeError("Cannot find version!")
-        
-        
-def install_requires():
+
+
+def _compact_ver(name, ver):
+    if ver == '"*"' or ver.startswith("{"):
+        ver = ""
+    return '%s%s' % (name, ver.strip('"'))
+
+
+def install_requires(dev=False):
     """
     Return requires in requirements.txt
     :return:
     """
     try:
-        with open("requirements.txt") as f:
-            return [line.strip() for line in f.readlines() if line.strip()]
+        cfg = ConfigParser()
+        cfg.read('Pipfile')
+        section_name = "%spackages" % ("dev-" if dev else "")
+        requires = [_compact_ver(name, cfg.get(section_name, name))for name in cfg.options(section_name)]
+        if not dev:
+            with open("requirements.txt", "w") as f:
+                f.write("\n".join(requires))
+        return requires
     except OSError:
         return []
+
+try:
+    LONG_DESCRIPTION = open("README.md").read()
+except UnicodeDecodeError:
+    LONG_DESCRIPTION = open("README.md", encoding="utf-8").read()
 
 
 @contextmanager
@@ -50,14 +68,25 @@ with cfg_manage(__file__.replace(".py", ".cfg.tpl")):
     setup(
         name="apistellar-cas",
         version=get_version("src/apistellar_cas"),
-        packages=find_packages("src"),
+        packages=find_packages("src", exclude=("tests*",)),
         package_dir={'': 'src'},
-        include_package_data=True,
+        description="cas for apistellar",
+        long_description=LONG_DESCRIPTION,
+        long_description_content_type="text/markdown",
+        classifiers=[
+            "License :: OSI Approved :: MIT License",
+            "Programming Language :: Python :: 3.6",
+            "Intended Audience :: Developers",
+            "Operating System :: Unix",
+        ],
+        keywords="cas apistellar",
+        author="cn",
+        author_email="cnaafhvk@foxmail.com",
+        url="https://www.github.com/ShichaoMa/apistellar-cas",
+        license="MIT",
         install_requires=install_requires(),
-        author="",
-        author_email="",
-        description="""cas for apistellar""",
-        keywords="",
+        include_package_data=True,
+        zip_safe=True,
         setup_requires=["pytest-runner"],
-        tests_require=["pytest-apistellar", "pytest-asyncio", "pytest-cov"]
+        tests_require=install_requires(dev=True)
     )

@@ -28,3 +28,11 @@ class WelcomeController(Controller):
         return app.render_template('index.html')
 
 ```
+
+```python
+# settings.py
+CAS_SERVER = 'https://xxx.xxx.xxx'
+CAS_LOGIN_ROUTE = '/xxxx'
+CAS_AFTER_LOGIN = 'view:welcome:index'
+CAS_USERNAME_SESSION_KEY = "username"
+```
